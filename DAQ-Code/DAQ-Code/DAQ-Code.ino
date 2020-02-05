@@ -31,6 +31,24 @@
   *         29                IGNITION_LED
   */
 
+#define SOL4_NSV2    2
+#define SOL3_OSV5    3
+#define SOL2_OSV4    4
+#define SOL1_WSV2    5
+#define IGNITER      6
+#define LS4_NSV2     7
+#define LS3_OSV5     8
+#define LS2_OSV4     9
+#define LS1_WSV2     10
+#define TC_DO        22
+#define TC_SCK       23
+#define OTC2_CS      24
+#define OTC3_CS      25
+#define OTC1_CS      26
+#define OTC4_CS      27
+#define ARMED_LED    28
+#define IGNITION_LED 29
+
 int8_t sol1_wsv2 = 0;
 int8_t sol2_osv4 = 0;
 int8_t sol3_osv5 = 0;
@@ -46,7 +64,6 @@ float pt2_opt2 = 0.0;
 float pt3_opt3 = 0.0;
 float pt4_npt1 = 0.0;
 float pt5_npt2 = 0.0;
-
 float otc1 = 0.0;
 float otc2 = 0.0;
 float otc3 = 0.0;
