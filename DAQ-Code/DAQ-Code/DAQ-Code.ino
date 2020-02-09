@@ -364,5 +364,5 @@ void parseData(String s)
   currentString = currentString.substring(s.indexOf(",")+1);
 
   subarray = currentString.substring(0, currentString.indexOf("}"));
-  if(subarray.toInt() == 0){igniter = HIGH;} else{igniter = LOW;}
+  if(subarray.toInt() == 1 && armed_led == HIGH){igniter = LOW; igniter_led = HIGH;} else{igniter = HIGH; igniter_led = LOW;}
 }
