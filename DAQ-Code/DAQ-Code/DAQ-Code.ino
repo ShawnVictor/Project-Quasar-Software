@@ -88,6 +88,8 @@ float scale = 0.0;
 
 bool ledState = LOW;
 
+String dataLine = "";
+
 Adafruit_MAX31855 tc1(TC_SCK, OTC1_CS, TC_DO);
 Adafruit_MAX31855 tc2(TC_SCK, OTC1_CS, TC_DO);
 Adafruit_MAX31855 tc3(TC_SCK, OTC1_CS, TC_DO);
@@ -113,15 +115,15 @@ void setup()
   
   setupPins();
   setSolenoidsLow();
-  //setupADC();
+  setupADC();
   
   heartbeatTimer.begin(blinker, 500000);
-  //aquireLimitSwitchData.begin(aquireLSs, hzToMicro(1));
+  aquireLimitSwitchData.begin(aquireLSs, hzToMicro(1));
   //aquirePressureTransducerData.begin(aquirePTs, hzToMicro(1));
   //aquireThermocoupleData.begin(aquireTCs, hzToMicro(1));
   //aquireLoadCellData.begin(aquireLCs, hzToMicro(1));
   updateOutputs.begin(outputUpdater, hzToMicro(1));
-  //updateSerialPrinter.begin(serialPrintAllSensors, hzToMicro(1));
+  updateSerialPrinter.begin(serialPrintAllSensors, hzToMicro(1));
   
 }
 
@@ -131,6 +133,35 @@ void loop()
 {
   // put your main code here, to run repeatedly:
   //interrupts();
+  otc1 = tc1.readCelsius();
+  otc2 = tc2.readCelsius();
+  otc3 = tc3.readCelsius();
+  otc4 = tc4.readCelsius();
+
+  pt1_opt1 = 1 * ads1.readADC_SingleEnded(0) + 0;
+  pt2_opt2 = 1 * ads1.readADC_SingleEnded(1) + 0;
+  pt3_opt3 = 1 * ads1.readADC_SingleEnded(2) + 0;
+  pt4_npt1 = 1 * ads1.readADC_SingleEnded(3) + 0;
+  pt5_npt2 = 1 * ads2.readADC_SingleEnded(0) + 0;
+
+  load_cell = 1 * (ads3.readADC_SingleEnded(0)-ads3.readADC_SingleEnded(1)) + 0;
+  scale = 1 * ads3.readADC_Differential_2_3() + 0;
+
+  char c;
+
+  if(Serial.available())
+  {
+    c = Serial.read();
+    if(c == '\n')
+    {
+      parseData(dataLine);
+      dataLine = "";
+    }
+    else
+    {
+      dataLine += c;
+    }
+  }
 }
 
 
@@ -187,7 +218,7 @@ void outputUpdater()
   digitalWrite(SOL4_NSV2, sol4_nsv2); 
   digitalWrite(IGNITER, igniter);
   digitalWrite(ARMED_LED, armed_led);
-  digitalWrite(IGNITER_LED, igniter_led);
+  digitalWrite(IGNITER_LED, !igniter);
 }
 
 
@@ -298,4 +329,40 @@ void serialPrintAllSensors()
   Serial.print(",");
   Serial.print(scale);
   Serial.print("}");
+}
+
+
+
+void parseData(String s)
+{
+  if(s.length() == 0 || s.length() < 10)
+  {
+    return;
+  }
+
+  String currentString = s;
+  String subarray = "";
+
+  subarray = currentString.substring(s.indexOf("{")+1, s.indexOf(","));
+  if(subarray.toInt() == 0){sol1_wsv2 = HIGH;} else{sol1_wsv2 = LOW;}
+  currentString = currentString.substring(s.indexOf(",")+1);
+
+  subarray = currentString.substring(0, currentString.indexOf(","));
+  if(subarray.toInt() == 0){sol2_osv4 = HIGH;} else{sol2_osv4 = LOW;}
+  currentString = currentString.substring(s.indexOf(",")+1);
+
+  subarray = currentString.substring(0, currentString.indexOf(","));
+  if(subarray.toInt() == 0){sol3_osv5 = HIGH;} else{sol3_osv5 = LOW;}
+  currentString = currentString.substring(s.indexOf(",")+1);
+
+  subarray = currentString.substring(0, currentString.indexOf(","));
+  if(subarray.toInt() == 0){sol4_nsv2 = HIGH;} else{sol4_nsv2 = LOW;}
+  currentString = currentString.substring(s.indexOf(",")+1);
+
+  subarray = currentString.substring(0, currentString.indexOf(","));
+  if(subarray.toInt() == 0){armed_led = LOW;} else{armed_led = HIGH;}
+  currentString = currentString.substring(s.indexOf(",")+1);
+
+  subarray = currentString.substring(0, currentString.indexOf("}"));
+  if(subarray.toInt() == 0){igniter = HIGH;} else{igniter = LOW;}
 }
