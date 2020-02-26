@@ -49,8 +49,8 @@
 #define LS3_OSV5     8
 #define LS2_OSV4     9
 #define LS1_WSV2     10
-#define TC_DO        22
-#define TC_SCK       23
+#define TC_DO        23
+#define TC_SCK       22
 #define OTC2_CS      24
 #define OTC3_CS      25
 #define OTC1_CS      26
@@ -91,9 +91,9 @@ bool ledState = LOW;
 String dataLine = "";
 
 Adafruit_MAX31855 tc1(TC_SCK, OTC1_CS, TC_DO);
-Adafruit_MAX31855 tc2(TC_SCK, OTC1_CS, TC_DO);
-Adafruit_MAX31855 tc3(TC_SCK, OTC1_CS, TC_DO);
-Adafruit_MAX31855 tc4(TC_SCK, OTC1_CS, TC_DO);
+Adafruit_MAX31855 tc2(TC_SCK, OTC2_CS, TC_DO);
+Adafruit_MAX31855 tc3(TC_SCK, OTC3_CS, TC_DO);
+Adafruit_MAX31855 tc4(TC_SCK, OTC4_CS, TC_DO);
 
 Adafruit_ADS1115 ads1(0x48);
 Adafruit_ADS1115 ads2(0x49);
@@ -106,6 +106,7 @@ IntervalTimer aquireThermocoupleData;
 IntervalTimer aquireLoadCellData;
 IntervalTimer updateOutputs;
 IntervalTimer updateSerialPrinter;
+//IntervalTimer aquireAnalogData;
 
 
 
@@ -116,14 +117,23 @@ void setup()
   setupPins();
   setSolenoidsLow();
   setupADC();
+
+  heartbeatTimer.priority(1);
+  aquireLimitSwitchData.priority(1);
+  updateOutputs.priority(1);
+  updateSerialPrinter.priority(1);
+  aquirePressureTransducerData.priority(0);
+  aquireThermocoupleData.priority(0);
+  aquireLoadCellData.priority(0);
   
   heartbeatTimer.begin(blinker, 500000);
   aquireLimitSwitchData.begin(aquireLSs, hzToMicro(1));
-  //aquirePressureTransducerData.begin(aquirePTs, hzToMicro(1));
-  //aquireThermocoupleData.begin(aquireTCs, hzToMicro(1));
-  //aquireLoadCellData.begin(aquireLCs, hzToMicro(1));
   updateOutputs.begin(outputUpdater, hzToMicro(1));
   updateSerialPrinter.begin(serialPrintAllSensors, hzToMicro(1));
+  //aquireAnalogData(aquireAnalog, hzToMicro(1));
+  aquirePressureTransducerData.begin(aquirePTs, hzToMicro(1));
+  aquireThermocoupleData.begin(aquireTCs, hzToMicro(1));
+  aquireLoadCellData.begin(aquireLCs, hzToMicro(1));
   
 }
 
