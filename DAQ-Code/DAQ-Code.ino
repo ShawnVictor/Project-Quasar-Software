@@ -68,7 +68,7 @@
 bool sol1_wsv2 = LOW;
 bool sol2_osv4 = LOW;
 bool sol3_osv5 = LOW;
-bool sol4_nsv2 = HIGH;
+bool sol4_nsv2 = LOW;
 bool igniter   = LOW;
 
 bool armed_led = LOW;
@@ -130,15 +130,8 @@ void setup()
 
 
   // Setting all IntervalTimers Priorities (Lower Value --> Higher Priority)
-  /*
-  heartbeatTimer.priority(1);
-  aquireLimitSwitchData.priority(1);
-  updateOutputs.priority(1);
-  updateSerialPrinter.priority(1);
-  aquirePressureTransducerData.priority(0);
-  aquireThermocoupleData.priority(0);
-  aquireLoadCellData.priority(0);
-  */
+  heartbeatTimer.priority(0);
+
 
   // Starting all IntervalTimres @ specified rates
   heartbeatTimer.begin(blinker, hzToMicro(HEARTBEAT_RATE));
@@ -152,25 +145,14 @@ void setup()
 // Code will Continously Execute
 void loop() 
 {
+  // Aquire all Limit Switch Input Data
   aquireLSs();
+
+  // Update the state of all Outputs
   outputUpdater();
-  //interrupts();
-  /*
-  otc1 = tc1.readCelsius();
-  otc2 = tc2.readCelsius();
-  otc3 = tc3.readCelsius();
-  otc4 = tc4.readCelsius();
 
-  pt1_opt1 = 1 * ads1.readADC_SingleEnded(0) + 0;
-  pt2_opt2 = 1 * ads1.readADC_SingleEnded(1) + 0;
-  pt3_opt3 = 1 * ads1.readADC_SingleEnded(2) + 0;
-  pt4_npt1 = 1 * ads1.readADC_SingleEnded(3) + 0;
-  pt5_npt2 = 1 * ads2.readADC_SingleEnded(0) + 0;
 
-  load_cell = 1 * (ads3.readADC_SingleEnded(0)-ads3.readADC_SingleEnded(1)) + 0;
-  scale = 1 * ads3.readADC_Differential_2_3() + 0;
-  */
-  
+  // XBEE Parsing System
   char c;
 
   if(Serial.available())
@@ -204,12 +186,12 @@ void aquireLSs()
 // Function that reads the temperature data from each thermocouple
 void aquireTCs()
 {
-  noInterrupts();
+  //noInterrupts();
   otc1 = tc1.readCelsius();
   otc2 = tc2.readCelsius();
   otc3 = tc3.readCelsius();
   otc4 = tc4.readCelsius();
-  interrupts();
+  //interrupts();
 }
 
 
@@ -217,14 +199,14 @@ void aquireTCs()
 // Function that reads the pressure data from each pressure transducer
 void aquireADCs()
 {
-  noInterrupts();
+  //noInterrupts();
   pt1_opt1 = 1 * ads1.readADC_SingleEnded(0) + 0;
   pt2_opt2 = 1 * ads1.readADC_SingleEnded(1) + 0;
   pt3_opt3 = 1 * ads1.readADC_SingleEnded(2) + 0;
   pt4_npt1 = 1 * ads1.readADC_SingleEnded(3) + 0;
   pt5_npt2 = 1 * ads2.readADC_SingleEnded(0) + 0;
   aquireLCs();
-  interrupts();
+  //interrupts();
 }
 
 
@@ -241,13 +223,13 @@ void aquireLCs()
 // Function that updates all outputs
 void outputUpdater()
 {
-  digitalWrite(SOL1_WSV2, sol1_wsv2);  
-  digitalWrite(SOL2_OSV4, sol2_osv4); 
-  digitalWrite(SOL3_OSV5, sol3_osv5); 
-  digitalWrite(SOL4_NSV2, sol4_nsv2); 
-  digitalWrite(IGNITER, igniter);
+  digitalWrite(SOL1_WSV2, !sol1_wsv2);  
+  digitalWrite(SOL2_OSV4, !sol2_osv4); 
+  digitalWrite(SOL3_OSV5, !sol3_osv5); 
+  digitalWrite(SOL4_NSV2, !sol4_nsv2); 
+  digitalWrite(IGNITER, !igniter);
   digitalWrite(ARMED_LED, armed_led);
-  digitalWrite(IGNITER_LED, !igniter);
+  digitalWrite(IGNITER_LED, igniter);
 }
 
 
