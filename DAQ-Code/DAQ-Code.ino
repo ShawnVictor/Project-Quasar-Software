@@ -40,24 +40,31 @@
 
 
 // Macros
-#define SOL4_NSV2    2
-#define SOL3_OSV5    3
-#define SOL2_OSV4    4
-#define SOL1_WSV2    5
-#define IGNITER      6
-#define LS4_NSV2     7
-#define LS3_OSV5     8
-#define LS2_OSV4     9
-#define LS1_WSV2     10
-#define TC_DO        23
-#define TC_SCK       22
-#define OTC2_CS      24
-#define OTC3_CS      25
-#define OTC1_CS      26
-#define OTC4_CS      27
-#define ARMED_LED    28
-#define IGNITER_LED 29
+#define SOL4_NSV2                2
+#define SOL3_OSV5                3
+#define SOL2_OSV4                4
+#define SOL1_WSV2                5
+#define IGNITER                  6
+#define LS4_NSV2                 7
+#define LS3_OSV5                 8
+#define LS2_OSV4                 9
+#define LS1_WSV2                 10
+#define TC_DO                    23
+#define TC_SCK                   22
+#define OTC2_CS                  24
+#define OTC3_CS                  25
+#define OTC1_CS                  26
+#define OTC4_CS                  27
+#define ARMED_LED                28
+#define IGNITER_LED              29
+#define BAUD_RATE                9600
+#define HEARTBEAT_RATE           8
+#define SERIAL_OUTPUT_RATE       8
+#define ADC_REFRESH_RATE         4
+#define TC_REFRESH_RATE          4
 
+
+// Globals
 bool sol1_wsv2 = LOW;
 bool sol2_osv4 = LOW;
 bool sol3_osv5 = LOW;
@@ -100,24 +107,30 @@ Adafruit_ADS1115 ads2(0x49);
 Adafruit_ADS1115 ads3(0x4A);
 
 IntervalTimer heartbeatTimer;
-IntervalTimer aquireLimitSwitchData;
-IntervalTimer aquirePressureTransducerData;
+IntervalTimer aquireADCData;
 IntervalTimer aquireThermocoupleData;
-IntervalTimer aquireLoadCellData;
-IntervalTimer updateOutputs;
 IntervalTimer updateSerialPrinter;
-//IntervalTimer aquireAnalogData;
 
 
 
+// Code executed once
 void setup() 
 {
-  Serial.begin(9600);
-  
+  // XBEE & Serial Monitor Baud Rate
+  Serial.begin(BAUD_RATE);
+
+  // Setting Pin Modes
   setupPins();
+
+  // Setting all Solenoid 
   setSolenoidsLow();
+
+  // Setting up the 3 ADC Modules
   setupADC();
 
+
+  // Setting all IntervalTimers Priorities (Lower Value --> Higher Priority)
+  /*
   heartbeatTimer.priority(1);
   aquireLimitSwitchData.priority(1);
   updateOutputs.priority(1);
@@ -125,24 +138,24 @@ void setup()
   aquirePressureTransducerData.priority(0);
   aquireThermocoupleData.priority(0);
   aquireLoadCellData.priority(0);
-  
-  heartbeatTimer.begin(blinker, 500000);
-  aquireLimitSwitchData.begin(aquireLSs, hzToMicro(1));
-  updateOutputs.begin(outputUpdater, hzToMicro(1));
-  updateSerialPrinter.begin(serialPrintAllSensors, hzToMicro(1));
-  //aquireAnalogData(aquireAnalog, hzToMicro(1));
-  aquirePressureTransducerData.begin(aquirePTs, hzToMicro(1));
-  aquireThermocoupleData.begin(aquireTCs, hzToMicro(1));
-  aquireLoadCellData.begin(aquireLCs, hzToMicro(1));
-  
+  */
+
+  // Starting all IntervalTimres @ specified rates
+  heartbeatTimer.begin(blinker, hzToMicro(HEARTBEAT_RATE));
+  updateSerialPrinter.begin(serialPrintAllSensors, hzToMicro(SERIAL_OUTPUT_RATE));
+  aquireADCData.begin(aquireADCs, hzToMicro(ADC_REFRESH_RATE));
+  aquireThermocoupleData.begin(aquireTCs, hzToMicro(TC_REFRESH_RATE));
 }
 
 
 
+// Code will Continously Execute
 void loop() 
 {
-  // put your main code here, to run repeatedly:
+  aquireLSs();
+  outputUpdater();
   //interrupts();
+  /*
   otc1 = tc1.readCelsius();
   otc2 = tc2.readCelsius();
   otc3 = tc3.readCelsius();
@@ -156,7 +169,8 @@ void loop()
 
   load_cell = 1 * (ads3.readADC_SingleEnded(0)-ads3.readADC_SingleEnded(1)) + 0;
   scale = 1 * ads3.readADC_Differential_2_3() + 0;
-
+  */
+  
   char c;
 
   if(Serial.available())
@@ -190,22 +204,27 @@ void aquireLSs()
 // Function that reads the temperature data from each thermocouple
 void aquireTCs()
 {
+  noInterrupts();
   otc1 = tc1.readCelsius();
   otc2 = tc2.readCelsius();
   otc3 = tc3.readCelsius();
   otc4 = tc4.readCelsius();
+  interrupts();
 }
 
 
 
 // Function that reads the pressure data from each pressure transducer
-void aquirePTs()
+void aquireADCs()
 {
+  noInterrupts();
   pt1_opt1 = 1 * ads1.readADC_SingleEnded(0) + 0;
   pt2_opt2 = 1 * ads1.readADC_SingleEnded(1) + 0;
   pt3_opt3 = 1 * ads1.readADC_SingleEnded(2) + 0;
   pt4_npt1 = 1 * ads1.readADC_SingleEnded(3) + 0;
   pt5_npt2 = 1 * ads2.readADC_SingleEnded(0) + 0;
+  aquireLCs();
+  interrupts();
 }
 
 
@@ -250,6 +269,9 @@ void setupPins()
   pinMode(SOL2_OSV4, OUTPUT);
   pinMode(SOL3_OSV5, OUTPUT);
   pinMode(SOL4_NSV2, OUTPUT);
+  pinMode(IGNITER, OUTPUT);
+  pinMode(ARMED_LED, OUTPUT);
+  pinMode(IGNITER_LED, OUTPUT);
   pinMode(13, OUTPUT);
   pinMode(LS1_WSV2, INPUT);
   pinMode(LS2_OSV4, INPUT);
