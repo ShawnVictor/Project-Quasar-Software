@@ -1,4 +1,38 @@
-#define buzzer   9
+/**
+ *   Quasar_Control_Board_Code
+ *   Developed by: Shawn Victor & Nikhita Ramanujam
+ *   Last Modified: 3-14-2020
+ */
+
+ /**
+  * ------------------------------------------------------------------
+  *   TEENSY 3.6 PIN     |   SIGNAL NAME
+  * ------------------------------------------------------------------
+  *         0                 XBEE_TX
+  *         1                 XBEE_RX
+  *         2                 ARMING_SWITCH_SIG
+  *         3                 IGNITION_SWITCH_SIG
+  *         4                 MANUAL_MODE_SWITCH_SIG
+  *         5                 SOL1_WSV2_SWITCH_SIG
+  *         6                 SOL2_OSV4_SWITCH_SIG
+  *         7                 SOL3_OSV5_SWITCH_SIG
+  *         8                 SOL4_NSV2_SWITCH_SIG
+  *         9                 BUZZER
+  *         10                --
+  *         11                ARMING_LED_INDICATOR
+  *         12                MANUAL_MODE_LED_INDICATOR
+  *         24                COMPUTING_LED_INDICATOR
+  *         25                SOL1_WSV2_LED_INDICATOR
+  *         26                SOL2_OSV4_LED_INDICATOR
+  *         27                SOL3_OSV5_LED_INDICATOR
+  *         28                SOL4_NSV2_LED_INDICATOR
+
+  */
+
+
+
+// Macros
+#define BUZZER   9
 #define sol_wsv2_relay 2
 #define sol_osv4_relay 3
 #define sol_osv5_relay 4
@@ -11,6 +45,13 @@
 #define nsv2_led 28
 #define minDataLength  10
 
+
+
+// Libraries
+
+
+
+// Globals
 IntervalTimer heartbeatTimer;
 IntervalTimer indicatorLEDTimer;
 IntervalTimer checkForProcessingMessage;
@@ -46,6 +87,8 @@ uint8_t last6_counter = 5;
 int ledState = LOW;
 
 
+
+// Will Run once before the loop
 void setup()
 {
   Serial.begin(9600);
@@ -59,7 +102,7 @@ void setup()
   pinMode(sol_osv4_relay, OUTPUT);
   pinMode(sol_osv5_relay, OUTPUT);
   pinMode(sol_nsv2_relay, OUTPUT);
-  pinMode(buzzer, OUTPUT);
+  pinMode(BUZZER, OUTPUT);
   pinMode(arming_led, OUTPUT);
   pinMode(igniter_led, OUTPUT);
   heartbeatTimer.begin(blinker,250000);
@@ -67,13 +110,8 @@ void setup()
   indicatorLEDTimer.begin(updateLEDIndicators, 50000);
   
 }
-void tloop()
-{
-  if(Serial4.available())
-  {
-    Serial.write(Serial4.read());
-  }
-}
+
+
 
 void loop() {
 
@@ -111,6 +149,18 @@ void loop() {
     }
   }
 }
+
+
+
+void tloop()
+{
+  if(Serial4.available())
+  {
+    Serial.write(Serial4.read());
+  }
+}
+
+
 
 void parseProcessingMessage(String s)
 {
@@ -337,12 +387,12 @@ void updateLEDIndicators()
   if(processing_arming == 1)
   {
     digitalWrite(arming_led, HIGH);
-    analogWrite(buzzer, 255);
+    analogWrite(BUZZER, 255);
   }
   else
   {
     digitalWrite(arming_led, LOW);
-    analogWrite(buzzer, 0);
+    analogWrite(BUZZER, 0);
   }
 
   if(processing_igniter == 1 && processing_arming == 1)
