@@ -1,7 +1,7 @@
 /**
  *   Quasar_Control_Board_Code
  *   Developed by: Shawn Victor & Nikhita Ramanujam
- *   Last Modified: 3-14-2020
+ *   Last Modified: 3-16-2020
  */
 
  /**
@@ -32,18 +32,22 @@
 
 
 // Macros
-#define BUZZER   9
-#define sol_wsv2_relay 2
-#define sol_osv4_relay 3
-#define sol_osv5_relay 4
-#define sol_nsv2_relay 5
-#define arming_led 11
-#define igniter_led 6
-#define wsv2_led 25
-#define osv4_led 26
-#define osv5_led 27
-#define nsv2_led 28
-#define minDataLength  10
+#define XBEE_SERIAL         Serial
+#define ARMING_SWITCH       2
+#define IGNITION_SWITCH     3
+#define MANUAL_MODE_SWITCH  4
+#define SOL1_WSV2_SWITCH    5
+#define SOL2_OSV4_SWITCH    6
+#define SOL3_OSV5_SWITCH    7
+#define SOL4_NSV2_SWITCH    8
+#define BUZZER              9
+#define ARMING_LED          11
+#define MANUAL_MODE_LED     12
+#define COMPUTING_LED       24
+#define SOL1_WSV2_LED       25
+#define SOL2_OSV4_LED       26
+#define SOL3_OSV5_LED       27
+#define SOL4_NSV2_LED       28
 
 
 
@@ -52,9 +56,9 @@
 
 
 // Globals
-IntervalTimer heartbeatTimer;
-IntervalTimer indicatorLEDTimer;
+IntervalTimer heartbeat;
 IntervalTimer checkForProcessingMessage;
+
 uint8_t sol1_wsv2_state = 1;
 uint8_t sol2_osv4_state = 2;
 uint8_t sol3_osv5_state = 3;
