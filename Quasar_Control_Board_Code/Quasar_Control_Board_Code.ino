@@ -32,7 +32,10 @@
 
 
 // Macros
-#define XBEE_SERIAL         Serial
+#define SERIAL_MONITOR      Serial
+#define SERIAL_MONITOR_BAUD 9600
+#define XBEE_SERIAL         Serial4
+#define XBEE_SERIAL_BAUD    9600
 #define ARMING_SWITCH       2
 #define IGNITION_SWITCH     3
 #define MANUAL_MODE_SWITCH  4
@@ -59,32 +62,24 @@
 IntervalTimer heartbeat;
 IntervalTimer checkForProcessingMessage;
 
-uint8_t sol1_wsv2_state = 1;
-uint8_t sol2_osv4_state = 2;
-uint8_t sol3_osv5_state = 3;
-uint8_t sol4_nsv2_state = 4;
-uint8_t igniter_state   = 5;
-uint8_t ls1_wsv2_state  = 6;
-uint8_t ls2_osv4_state  = 7;
-uint8_t ls3_osv5_state  = 8;
-uint8_t ls4_nsv2_state  = 9;
-float     otc1          = 1;
-float     otc2          = 2;
-float     otc3          = 3;
-float     otc4          = 4;
-int     pt1_opt1        = 5;
-int     pt2_opt2        = 6;
-int     pt3_opt3        = 7;
-int     pt4_npt1        = 8;
-int     pt5_npt2        = 9;
-int     load_cell       = 1;
-int     scale           = 2;
-int  processing_wsv2     = 0;
-int  processing_osv4     = 0;
-int  processing_osv5     = 0;
-int  processing_nsv2     = 0;
-int  processing_arming   = 0;
-int  processing_igniter  = 0;
+bool wsv2_sw_state        = LOW;
+bool osv4_sw_state        = LOW;
+bool osv5_sw_state        = LOW;
+bool nsv2_sw_state        = LOW;
+bool armed_sw_state       = LOW;
+bool ignition_sw_state    = LOW;
+bool manual_mode_sw_state = LOW;
+
+uint_8 buzzer_volume = 0;
+
+bool arming_led_state       = LOW;
+bool manual_mode_led_state  = LOW;
+bool computing_led_state    = LOW;
+bool sol1_wsv2_led_state    = LOW;
+bool sol2_osv4_led_state    = LOW;
+bool sol3_osv5_led_state    = LOW;
+bool sol4_nsv2_led_state    = LOW;
+
 String dataLine = "";
 String processingDataLine = "";
 uint8_t last6_counter = 5;
@@ -92,39 +87,54 @@ int ledState = LOW;
 
 
 
-// Will Run once before the loop
+// This code will execute once.
 void setup()
 {
-  Serial.begin(9600);
-  Serial4.begin(9600);
-  pinMode(13, OUTPUT);
-  pinMode(wsv2_led, OUTPUT);
-  pinMode(osv4_led, OUTPUT);
-  pinMode(osv5_led, OUTPUT);
-  pinMode(nsv2_led, OUTPUT);
-  pinMode(sol_wsv2_relay, OUTPUT);
-  pinMode(sol_osv4_relay, OUTPUT);
-  pinMode(sol_osv5_relay, OUTPUT);
-  pinMode(sol_nsv2_relay, OUTPUT);
-  pinMode(BUZZER, OUTPUT);
-  pinMode(arming_led, OUTPUT);
-  pinMode(igniter_led, OUTPUT);
-  heartbeatTimer.begin(blinker,250000);
-//  heartbeatTimer.begin(processingMessageCheck, 1000000);
-  indicatorLEDTimer.begin(updateLEDIndicators, 50000);
+  
+  // Setting up all Serial Lines.
+  SERIAL_MONITOR.begin(SERIAL_MONITOR_BUAD);
+  XBEE_SERIAL.begin(XBEE_SERIAL_BAUD);
+
+
+  // Setting up all Pins.
+  setupPins();
+
+
+  // Setting IntervalTimer Priorities.
+  heartbeat.priority(0);
+
+  
+  // Setting up IntervalTimers.
+  heartbeat.begin(blinker, hzToMicro(4));
+  indicatorLEDTimer.begin(updateLEDIndicators, hzToMicro(20));
   
 }
 
 
 
-void loop() {
-
-  char c;
+// This code will execute continously.
+void loop() 
+{
   
-  if(Serial4.available())
+  // Update all Input states
+  updateInputStates();
+
+  
+  // Update Outputs of all LEDS & Buzzers
+  updateOutputs();
+
+  
+  // XBEE Message Check
+  char XBEE_last_read_character;
+
+
+  // Check if data is available from the XBEE RX Buffer.
+  if(XBEE_SERIAL.available())
   {
-    c = Serial4.read();
-    if(c == '\n')
+    XBEE_last_read_character = XBEE_SERIAL.read();
+
+    // Check for the end of a packet.
+    if(XBEE_last_read_character == '\n')
     {
       parseData(dataLine);
       serialPrintAllSensors();
@@ -132,26 +142,100 @@ void loop() {
     }
     else
     {
-      dataLine += c; //append text to end of command
+      // Append text to end of our constructing XBEE packet.
+      dataLine += XBEE_last_read_character; 
     }
   }
 
-  //Processing Message check
-  char c2;
 
-  if(Serial.available())
+  //Processing Message check
+  char PROCESSING_last_read_character;
+
+  if(SERIAL_MONITOR.available())
   {
-    c2 = Serial.read();
-    if(c2 == '\n')
+    PROCESSING_last_read_character = SERIAL_MONITOR.read();
+
+    // Check for the end of a packet.
+    if(PROCESSING_last_read_character == '\n')
     {
       parseProcessingMessage(processingDataLine);
       processingDataLine = "";  
     }
     else
     {
+      // Append text to end of our constructing PROCESSING packet.
       processingDataLine += c2;
     }
   }
+  
+}
+
+
+
+// Declares all of the Pins.
+void setupPins()
+{
+  
+  // Switch Inputs.
+  pinMode(ARMING_SWITCH,      INPUT);
+  pinMode(IGNITION_SWITCH,    INPUT);
+  pinMode(MANUAL_MODE_SWITCH, INPUT);
+  pinMode(SOL1_WSV2_SWITCH,   INPUT);
+  pinMode(SOL2_OSV4_SWITCH,   INPUT);
+  pinMode(SOL3_OSV5_SWITCH,   INPUT);
+  pinMode(SOL4_NSV2_SWITCH,   INPUT);
+
+  // LED & Buzzer Outputs.
+  pinMode(BUZZER,          OUTPUT);
+  pinMode(ARMING_LED,      OUTPUT);
+  pinMode(MANUAL_MODE_LED, OUTPUT);
+  pinMode(COMPUTING_LED,   OUTPUT);
+  pinMode(SOL1_WSV2_LED,   OUTPUT);
+  pinMode(SOL2_OSV4_LED,   OUTPUT);
+  pinMode(SOL3_OSV5_LED,   OUTPUT);
+  pinMode(SOL4_NSV2_LED,   OUTPUT);
+  
+}
+
+
+
+// Update Input States
+void updateInputStates()
+{
+  armed_sw_state = digitalRead(ARMING_SWITCH);  
+  ignition_sw_state = digitalRead(IGNITION_SWITCH);
+  manual_mode_sw_state = digitalRead(MANUAL_MODE_SWITCH);
+  wsv2_sw_state = digitalRead(SOL1_WSV2_SWITCH);
+  osv4_sw_state = digitalRead(SOL2_OSV4_SWITCH);
+  osv5_sw_state = digitalRead(SOL3_OSV5_SWITCH);
+  nsv2_sw_state = digitalRead(SOL4_NSV2_SWITCH);
+}
+
+
+
+// Updates all Output Pins.
+void updateOutputs()
+{
+  
+  // If Armed...
+  if( ARMING_SWITCH == HIGH )
+  {
+    analogWrite(BUZZER, 1000);
+    digitalWrite(ARMING_LED, HIGH);
+  }
+  else
+  {
+    analogWrite(BUZZER, 0);
+    digitalWrite(ARMING_LED, LOW);
+  }
+
+  // Updates all Output Pins.
+  digitalWrite(MANUAL_MODE_LED, manual_mode_sw_state);
+  digitalWrite(COMPUTING_LED, computing_led_state);
+  digitalWrite(SOL1_WSV2_LED, sol1_wsv2_led_state);
+  digitalWrite(SOL2_OSV4_LED, sol2_osv4_led_state);
+  digitalWrite(SOL3_OSV5_LED, sol3_osv5_led_state);
+  digitalWrite(SOL4_NSV2_LED, sol4_nsv2_led_state);
 }
 
 
@@ -166,6 +250,22 @@ void tloop()
 
 
 
+/*
+ * FUNCTION: Converts a Freqency Parameter in Hz to Microseconds
+ * INPUT: Integer Frequency in Hz
+ * OUTPUT: Integer Period in microseconds
+ */
+int hzToMicro(int hz)
+{
+  return (1000000/hz);
+}
+
+
+
+/*
+ * FUNCTION: Extacts the data from a String from the Processing Script and updates all globals 
+ * INPUTS: String in the format: "PROS RCVD:{<WSV2>,<OSV4>,<OSV5>,<NSV2>,<ARMING>,<IGNITER>,<>,<>,<>,<>,<>}"
+ */
 void parseProcessingMessage(String s)
 {
   if(s.length() == 0 || s.length() < 10) //17 is the expect number
@@ -203,6 +303,7 @@ void parseProcessingMessage(String s)
 
   subarray = currentString.substring(0, currentString.indexOf("}"));
   processing_igniter = subarray.toInt();
+
 }
 
 void parseData(String s)
