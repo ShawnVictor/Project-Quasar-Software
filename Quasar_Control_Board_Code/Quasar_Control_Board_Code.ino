@@ -263,8 +263,9 @@ int hzToMicro(int hz)
 
 
 /*
- * FUNCTION: Extacts the data from a String from the Processing Script and updates all globals 
- * INPUTS: String in the format: "PROS RCVD:{<WSV2>,<OSV4>,<OSV5>,<NSV2>,<ARMING>,<IGNITER>,<>,<>,<>,<>,<>}"
+ *    FUNCTION: Extacts the data from a String from the Processing Script and updates all globals 
+ *    INPUTS: String in the format: "PROS RCVD:{<WSV2-ds>,<OSV4-ds>,<OSV5-ds>,<NSV2-ds>,<ARMING>,<IGNITER>,<>,<>,<>,<>,<>}"
+ *        
  */
 void parseProcessingMessage(String s)
 {
@@ -306,6 +307,12 @@ void parseProcessingMessage(String s)
 
 }
 
+
+ /*
+ *    FUNCTION: Extracts the data from a String from the XBEE and updates all of the globals
+ *    INPUTS:   String in the format: "DWNLNK RCVD{<WSV2-cs>, <OSV4-cs>, <OSV5-cs>, <NSV2-cs>, <IGNTR-cs>, <LS1-WSV2>, <LS2-OSV4>, <LS3-OSV5>, <LS4-NSV2>, <OTC1>, <OTC2>, <OTC3>, <OTC4>, <OPT1>, <OPT2>, <OPT3>, <NPT1>, <NPT2>, <LOAD_CELL>, <SCALE>}"
+ 
+ */
 void parseData(String s)
 {
   if(s.length() == 0 || s.length() < minDataLength) 
@@ -316,7 +323,7 @@ void parseData(String s)
   String currentString = s;
   String subarray = "";
   //Serial.print("This is the substring: ");
-//-------------------------------------------------------------
+//SOLENOIDS-------------------------------------------------------------
   subarray = currentString.substring(s.indexOf("{")+1, s.indexOf(","));
   //Serial.print(subarray);
   sol1_wsv2_state = subarray.toInt();
@@ -337,12 +344,12 @@ void parseData(String s)
   sol4_nsv2_state = subarray.toInt();
   currentString = currentString.substring(currentString.indexOf(",")+1);
 
-//-------------------------------------------------------------
+//IGNITER-------------------------------------------------------------
   subarray = currentString.substring(0, currentString.indexOf(","));
   igniter_state = subarray.toInt();
   currentString = currentString.substring(currentString.indexOf(",")+1);
 
-//-------------------------------------------------------------
+//LIMIT_SWITCH-------------------------------------------------------------
   subarray = currentString.substring(0, currentString.indexOf(","));
   ls1_wsv2_state = subarray.toInt();
   if(ls1_wsv2_state == 1){digitalWrite(wsv2_led, HIGH);}else{digitalWrite(wsv2_led, LOW);}
@@ -363,7 +370,7 @@ void parseData(String s)
   if(ls4_nsv2_state == 1){digitalWrite(nsv2_led, HIGH);}else{digitalWrite(nsv2_led, LOW);}
   currentString = currentString.substring(currentString.indexOf(",")+1);
 
-//-------------------------------------------------------------
+//THERMOCOUPLES-------------------------------------------------------------
   subarray = currentString.substring(0, currentString.indexOf(","));
   otc1 = subarray.toFloat();
   currentString = currentString.substring(currentString.indexOf(",")+1);
@@ -380,7 +387,7 @@ void parseData(String s)
   otc4 = subarray.toFloat();
   currentString = currentString.substring(currentString.indexOf(",")+1);
 
-//-------------------------------------------------------------
+//PRESSURE_TRANSDUCERS-------------------------------------------------------------
   subarray = currentString.substring(0, currentString.indexOf(","));
   pt1_opt1 = subarray.toFloat();
   currentString = currentString.substring(currentString.indexOf(",")+1);
@@ -401,7 +408,7 @@ void parseData(String s)
   pt5_npt2 = subarray.toFloat();
   currentString = currentString.substring(currentString.indexOf(",")+1);
 
-//-------------------------------------------------------------
+//LOAD_CELL_&_SCALE-------------------------------------------------------------
   subarray = currentString.substring(0, currentString.indexOf(","));
   load_cell = subarray.toFloat();
   currentString = currentString.substring(currentString.indexOf(",")+1);
@@ -415,12 +422,21 @@ void parseData(String s)
 }
 
 
+
+/*
+*   FUNCTION: Responsible for the Board's Heartbeat
+*   INPUTS:   N/A
+*   OUTPUTS:  N/A
+*/
 void blinker()
 {
   if(ledState == LOW){ledState = HIGH;}
   else{ledState = LOW;}
+
   digitalWrite(13, ledState);
 }
+
+
 
 void updateLEDIndicators()
 {
