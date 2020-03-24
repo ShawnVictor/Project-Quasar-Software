@@ -62,10 +62,34 @@
 IntervalTimer heartbeat;
 IntervalTimer checkForProcessingMessage;
 
+// DAQ Board States
+uint8_t sol1_wsv2_state = 0;
+uint8_t sol2_osv4_state = 0;
+uint8_t sol3_osv5_state = 0;
+uint8_t sol4_nsv2_state = 0;
+uint8_t igniter_state = 0;
+uint8_t ls1_wsv2_state = 0;
+uint8_t ls2_osv4_state = 0;
+uint8_t ls3_osv5_state = 0;
+uint8_t ls4_nsv2_state = 0;
+float otc1 = 0.0;
+float otc2 = 0.0;
+float otc3 = 0.0;
+float otc4 = 0.0;
+float pt1_opt1 = 0.0;
+float pt2_opt2 = 0.0;
+float pt3_opt3 = 0.0;
+float pt4_npt1 = 0.0;
+float pt5_npt2 = 0.0;
+
+
+
+// Control Board States
 bool wsv2_sw_state        = LOW;
 bool osv4_sw_state        = LOW;
 bool osv5_sw_state        = LOW;
 bool nsv2_sw_state        = LOW;
+bool emo_sw_state         = LOW;
 bool armed_sw_state       = LOW;
 bool ignition_sw_state    = LOW;
 bool manual_mode_sw_state = LOW;
@@ -116,19 +140,31 @@ void setup()
 void loop() 
 {
   
-  // Update all Input states
+  // STEP 1- Update all Input states
   updateInputStates();
 
   
-  // Update Outputs of all LEDS & Buzzers
+  // STEP 2- Update Outputs of all LEDS & Buzzers
   updateOutputs();
 
   
-  // XBEE Message Check
+  // STEP 3- XBEE Packet Check from the DAQ-Board
+  checkForXBEEPacket();
+  
+
+  // STEP 4- Processing Packet check
+  checkForProcessingPacket();
+  
+}
+
+
+
+// Checks XBEE RX buffer for DAQ-Board Packets
+void checkForXBEEPacket()
+{
+  
   char XBEE_last_read_character;
-
-
-  // Check if data is available from the XBEE RX Buffer.
+  
   if(XBEE_SERIAL.available())
   {
     XBEE_last_read_character = XBEE_SERIAL.read();
@@ -137,7 +173,7 @@ void loop()
     if(XBEE_last_read_character == '\n')
     {
       parseData(dataLine);
-      serialPrintAllSensors();
+      sendProcessingPacket(); // Once a full DAQ-Packet has been received, send a processing packet
       dataLine = "";
     }
     else
@@ -146,9 +182,15 @@ void loop()
       dataLine += XBEE_last_read_character; 
     }
   }
+  
+}
 
 
-  //Processing Message check
+
+//Checks SERIAL MONITOR RX Buffer for Processing Script Packets
+void checkForProcessingPacket()
+{
+  
   char PROCESSING_last_read_character;
 
   if(SERIAL_MONITOR.available())
@@ -159,15 +201,103 @@ void loop()
     if(PROCESSING_last_read_character == '\n')
     {
       parseProcessingMessage(processingDataLine);
+      sendDAQPacket(); // Once a full Processing-Packet has been received, send a Packet to the DAQ
       processingDataLine = "";  
     }
     else
     {
       // Append text to end of our constructing PROCESSING packet.
-      processingDataLine += c2;
+      processingDataLine += PROCESSING_last_read_character;
     }
   }
   
+}
+
+
+
+// Sends a DAQ-Board Packet though the XBEE TX Buffer
+// WHAT A PACKET LOOKS LIKE: "\nULNK RCVD:{man_mode_sw, sol1_d_state, sol2_d_state, sol3_d_state, sol4_d_state, emo_sw_state, arming_sw_state, ignition_sw_state}"
+void sendDAQPacket()
+{
+  XBEE_SERIAL.println();
+  XBEE_SERIAL.print("ULNK RCVD:{");
+
+  XBEE_SERIAL.print(manual_mode_sw_state);
+  XBEE_SERIAL.print(",");
+  
+  XBEE_SERIAL.print(wsv2_sw_state);
+  XBEE_SERIAL.print(",");
+  XBEE_SERIAL.print(osv4_sw_state);
+  XBEE_SERIAL.print(",");
+  XBEE_SERIAL.print(osv5_sw_state);
+  XBEE_SERIAL.print(",");
+  XBEE_SERIAL.print(nsv2_sw_state);
+  XBEE_SERIAL.print(",");
+
+  XBEE_SERIAL.print(emo_sw_state);
+  XBEE_SERIAL.print(",");
+
+  XBEE_SERIAL.print(armed_sw_state);
+  XBEE_SERIAL.print(",");
+
+  XBEE_SERIAL.print(ignition_sw_state);
+  XBEE_SERIAL.print("}");
+}
+
+
+
+// Send a Processing Script Packet though the Serial Monitor TX Buffer
+// WHAT A PACKET LOOKS LIKE: "\nDLNK RCVD:{sol1, sol2, sol3, sol4, ls1, ls2, ls3, ls4, otc1, otc2, otc3, otc4, pt1, pt2, pt3, pt4, pt5, lc, scale}"
+void sendProcessingPacket()
+{
+  SERIAL_MONITOR.println();
+  SERIAL_MONITOR.print("DLNK RCVD:{");
+  
+  SERIAL_MONITOR.print(sol1_wsv2_state);
+  SERIAL_MONITOR.print(",");
+  SERIAL_MONITOR.print(sol2_osv4_state);
+  SERIAL_MONITOR.print(",");
+  SERIAL_MONITOR.print(sol3_osv5_state);
+  SERIAL_MONITOR.print(",");
+  SERIAL_MONITOR.print(sol4_nsv2_state);
+  SERIAL_MONITOR.print(",");
+  
+  SERIAL_MONITOR.print(igniter_state);
+  SERIAL_MONITOR.print(",");
+  
+  SERIAL_MONITOR.print(ls1_wsv2_state);
+  SERIAL_MONITOR.print(",");
+  SERIAL_MONITOR.print(ls2_osv4_state);
+  SERIAL_MONITOR.print(",");
+  SERIAL_MONITOR.print(ls3_osv5_state);
+  SERIAL_MONITOR.print(",");
+  SERIAL_MONITOR.print(ls4_nsv2_state);
+  SERIAL_MONITOR.print(",");
+
+  SERIAL_MONITOR.print(otc1);
+  SERIAL_MONITOR.print(",");
+  SERIAL_MONITOR.print(otc2);
+  SERIAL_MONITOR.print(",");
+  SERIAL_MONITOR.print(otc3);
+  SERIAL_MONITOR.print(",");
+  SERIAL_MONITOR.print(otc4);
+  SERIAL_MONITOR.print(",");
+
+  SERIAL_MONITOR.print(pt1_opt1);
+  SERIAL_MONITOR.print(",");
+  SERIAL_MONITOR.print(pt2_opt2);
+  SERIAL_MONITOR.print(",");
+  SERIAL_MONITOR.print(pt3_opt3);
+  SERIAL_MONITOR.print(",");
+  SERIAL_MONITOR.print(pt4_npt1);
+  SERIAL_MONITOR.print(",");
+  SERIAL_MONITOR.print(pt5_npt2);
+  SERIAL_MONITOR.print(",");
+
+  SERIAL_MONITOR.print(load_cell);
+  SERIAL_MONITOR.print(",");
+  SERIAL_MONITOR.print(scale);
+  SERIAL_MONITOR.print("}");
 }
 
 
@@ -264,7 +394,7 @@ int hzToMicro(int hz)
 
 /*
  * FUNCTION: Extacts the data from a String from the Processing Script and updates all globals 
- * INPUTS: String in the format: "PROS RCVD:{<WSV2>,<OSV4>,<OSV5>,<NSV2>,<ARMING>,<IGNITER>,<>,<>,<>,<>,<>}"
+ * INPUTS: String in the format: "\nPROS RCVD:{wsv2_d_state, osv4_d_state, osv5_d_state, nsv2_d_state, armed_sw_state, ignition_sw_state}"
  */
 void parseProcessingMessage(String s)
 {
@@ -278,31 +408,31 @@ void parseProcessingMessage(String s)
 
   subarray = currentString.substring(s.indexOf("{")+1, s.indexOf(","));
   //Serial.print(subarray);
-  processing_wsv2 = subarray.toInt();
+  if(manual_mode_sw_state != HIGH){wsv2_sw_state = subarray.toInt();}
   currentString = currentString.substring(s.indexOf(",")+1);
 
   subarray = currentString.substring(0, currentString.indexOf(","));
   //Serial.print(subarray);
-  processing_osv4 = subarray.toInt();
+  if(manual_mode_sw_state != HIGH){osv4_sw_state = subarray.toInt()};
   currentString = currentString.substring(currentString.indexOf(",")+1);
 
   subarray = currentString.substring(0, currentString.indexOf(","));
   //Serial.print(subarray);
-  processing_osv5 = subarray.toInt();
+  if(manual_mode_sw_state != HIGH){osv5_sw_state = subarray.toInt()};
   currentString = currentString.substring(currentString.indexOf(",")+1);
 
   subarray = currentString.substring(0, currentString.indexOf(","));
   //Serial.print(subarray);
-  processing_nsv2 = subarray.toInt();
+  if(manual_mode_sw_state != HIGH){nsv2_sw_state = subarray.toInt()};
   currentString = currentString.substring(currentString.indexOf(",")+1);
 
   subarray = currentString.substring(0, currentString.indexOf(","));
   //Serial.print(subarray);
-  processing_arming = subarray.toInt();
+  if(manual_mode_sw_state != HIGH){armed_sw_state = subarray.toInt()};
   currentString = currentString.substring(currentString.indexOf(",")+1);
 
   subarray = currentString.substring(0, currentString.indexOf("}"));
-  processing_igniter = subarray.toInt();
+  if(manual_mode_sw_state != HIGH){ignition_sw_state = subarray.toInt()};
 
 }
 
@@ -508,56 +638,4 @@ void updateLEDIndicators()
   {
     digitalWrite(igniter_led, LOW);
   }
-}
-
-void serialPrintAllSensors()
-{
-  Serial.println();
-  Serial.print("DLNK RCVD:{");
-  
-  Serial.print(sol1_wsv2_state);
-  Serial.print(",");
-  Serial.print(sol2_osv4_state);
-  Serial.print(",");
-  Serial.print(sol3_osv5_state);
-  Serial.print(",");
-  Serial.print(sol4_nsv2_state);
-  Serial.print(",");
-  
-  Serial.print(igniter_state);
-  Serial.print(",");
-  
-  Serial.print(ls1_wsv2_state);
-  Serial.print(",");
-  Serial.print(ls2_osv4_state);
-  Serial.print(",");
-  Serial.print(ls3_osv5_state);
-  Serial.print(",");
-  Serial.print(ls4_nsv2_state);
-  Serial.print(",");
-
-  Serial.print(otc1);
-  Serial.print(",");
-  Serial.print(otc2);
-  Serial.print(",");
-  Serial.print(otc3);
-  Serial.print(",");
-  Serial.print(otc4);
-  Serial.print(",");
-
-  Serial.print(pt1_opt1);
-  Serial.print(",");
-  Serial.print(pt2_opt2);
-  Serial.print(",");
-  Serial.print(pt3_opt3);
-  Serial.print(",");
-  Serial.print(pt4_npt1);
-  Serial.print(",");
-  Serial.print(pt5_npt2);
-  Serial.print(",");
-
-  Serial.print(load_cell);
-  Serial.print(",");
-  Serial.print(scale);
-  Serial.print("}");
 }
