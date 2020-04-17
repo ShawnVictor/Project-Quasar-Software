@@ -65,8 +65,8 @@
 
 
 // Globals
-bool sol1_wsv2 = LOW;
-bool sol2_osv4 = LOW;
+bool sol1_wsv2 = HIGH;
+bool sol2_osv4 = HIGH;
 bool sol3_osv5 = LOW;
 bool sol4_nsv2 = LOW;
 bool igniter   = LOW;
@@ -117,7 +117,7 @@ IntervalTimer updateSerialPrinter;
 void setup() 
 {
   // XBEE & Serial Monitor Baud Rate
-  Serial.begin(BAUD_RATE);
+  Serial1.begin(BAUD_RATE);
 
   // Setting Pin Modes
   setupPins();
@@ -146,7 +146,7 @@ void setup()
 void loop() 
 {
   // Aquire all Limit Switch Input Data
-  aquireLSs();
+  //aquireLSs();
 
   // Update the state of all Outputs
   outputUpdater();
@@ -199,6 +199,7 @@ void aquireTCs()
 // Function that reads the pressure data from each pressure transducer
 void aquireADCs()
 {
+  aquireLSs();
   //noInterrupts();
   pt1_opt1 = 1 * ads1.readADC_SingleEnded(0) + 0;
   pt2_opt2 = 1 * ads1.readADC_SingleEnded(1) + 0;
@@ -295,54 +296,54 @@ void blinker()
 
 void serialPrintAllSensors()
 {
-  Serial.println();
-  Serial.print("DWNLNK:{");
+  Serial1.println();
+  Serial1.print("DWNLNK:{");
   
-  Serial.print(sol1_wsv2);
-  Serial.print(",");
-  Serial.print(sol2_osv4);
-  Serial.print(",");
-  Serial.print(sol3_osv5);
-  Serial.print(",");
-  Serial.print(sol4_nsv2);
-  Serial.print(",");
+  Serial1.print(sol1_wsv2);
+  Serial1.print(",");
+  Serial1.print(sol2_osv4);
+  Serial1.print(",");
+  Serial1.print(sol3_osv5);
+  Serial1.print(",");
+  Serial1.print(sol4_nsv2);
+  Serial1.print(",");
   
-  Serial.print(igniter);
-  Serial.print(",");
+  Serial1.print(igniter);
+  Serial1.print(",");
   
-  Serial.print(ls1_wsv2);
-  Serial.print(",");
-  Serial.print(ls2_osv4);
-  Serial.print(",");
-  Serial.print(ls3_osv5);
-  Serial.print(",");
-  Serial.print(ls4_nsv2);
-  Serial.print(",");
+  Serial1.print(ls1_wsv2);
+  Serial1.print(",");
+  Serial1.print(ls2_osv4);
+  Serial1.print(",");
+  Serial1.print(ls3_osv5);
+  Serial1.print(",");
+  Serial1.print(ls4_nsv2);
+  Serial1.print(",");
 
-  Serial.print(otc1);
-  Serial.print(",");
-  Serial.print(otc2);
-  Serial.print(",");
-  Serial.print(otc3);
-  Serial.print(",");
-  Serial.print(otc4);
-  Serial.print(",");
+  Serial1.print(otc1);
+  Serial1.print(",");
+  Serial1.print(otc2);
+  Serial1.print(",");
+  Serial1.print(otc3);
+  Serial1.print(",");
+  Serial1.print(otc4);
+  Serial1.print(",");
 
-  Serial.print(pt1_opt1);
-  Serial.print(",");
-  Serial.print(pt2_opt2);
-  Serial.print(",");
-  Serial.print(pt3_opt3);
-  Serial.print(",");
-  Serial.print(pt4_npt1);
-  Serial.print(",");
-  Serial.print(pt5_npt2);
-  Serial.print(",");
+  Serial1.print(pt1_opt1);
+  Serial1.print(",");
+  Serial1.print(pt2_opt2);
+  Serial1.print(",");
+  Serial1.print(pt3_opt3);
+  Serial1.print(",");
+  Serial1.print(pt4_npt1);
+  Serial1.print(",");
+  Serial1.print(pt5_npt2);
+  Serial1.print(",");
 
-  Serial.print(load_cell);
-  Serial.print(",");
-  Serial.print(scale);
-  Serial.print("}");
+  Serial1.print(load_cell);
+  Serial1.print(",");
+  Serial1.print(scale);
+  Serial1.print("}");
 }
 
 

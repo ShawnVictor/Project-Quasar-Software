@@ -60,8 +60,32 @@
 
 // Globals
 IntervalTimer heartbeat;
+IntervalTimer indicatorLEDTimer;
 IntervalTimer checkForProcessingMessage;
 
+//From DAQ
+int sol1_wsv2_state = 0;
+int sol2_osv4_state = 0;
+int sol3_osv5_state = 0;
+int sol4_nsv2_state = 0;
+int igniter_state = 0;
+int ls1_wsv2_state = 0;
+int ls2_osv4_state = 0;
+int ls3_osv5_state = 0;
+int ls4_nsv2_state = 0;
+float otc1 = 0;
+float otc2 = 0;
+float otc3 = 0;
+float otc4 = 0;
+float pt1_opt1 = 0;
+float pt2_opt2 = 0;
+float pt3_opt3 = 0;
+float pt4_npt1 = 0;
+float pt5_npt2 = 0;
+float load_cell = 0;
+float scale = 0;
+
+//From Controller
 bool wsv2_sw_state        = LOW;
 bool osv4_sw_state        = LOW;
 bool osv5_sw_state        = LOW;
@@ -69,9 +93,7 @@ bool nsv2_sw_state        = LOW;
 bool armed_sw_state       = LOW;
 bool ignition_sw_state    = LOW;
 bool manual_mode_sw_state = LOW;
-
-uint_8 buzzer_volume = 0;
-
+uint8_t buzzer_volume = 0;
 bool arming_led_state       = LOW;
 bool manual_mode_led_state  = LOW;
 bool computing_led_state    = LOW;
@@ -79,6 +101,14 @@ bool sol1_wsv2_led_state    = LOW;
 bool sol2_osv4_led_state    = LOW;
 bool sol3_osv5_led_state    = LOW;
 bool sol4_nsv2_led_state    = LOW;
+
+//From Processing Serial
+int processing_wsv2;
+int processing_osv4;
+int processing_osv5;
+int processing_nsv2;
+int processing_arming;
+int processing_igniter;
 
 String dataLine = "";
 String processingDataLine = "";
@@ -92,8 +122,8 @@ void setup()
 {
   
   // Setting up all Serial Lines.
-  SERIAL_MONITOR.begin(SERIAL_MONITOR_BUAD);
-  XBEE_SERIAL.begin(XBEE_SERIAL_BAUD);
+  SERIAL_MONITOR.begin(9600);
+  XBEE_SERIAL.begin(9600);
 
 
   // Setting up all Pins.
@@ -106,7 +136,6 @@ void setup()
   
   // Setting up IntervalTimers.
   heartbeat.begin(blinker, hzToMicro(4));
-  indicatorLEDTimer.begin(updateLEDIndicators, hzToMicro(20));
   
 }
 
@@ -164,7 +193,7 @@ void loop()
     else
     {
       // Append text to end of our constructing PROCESSING packet.
-      processingDataLine += c2;
+      processingDataLine += PROCESSING_last_read_character;
     }
   }
   
@@ -315,7 +344,7 @@ void parseProcessingMessage(String s)
  */
 void parseData(String s)
 {
-  if(s.length() == 0 || s.length() < minDataLength) 
+  if(s.length() == 0 || s.length() < 20) 
   {
     return;
   }
@@ -352,22 +381,22 @@ void parseData(String s)
 //LIMIT_SWITCH-------------------------------------------------------------
   subarray = currentString.substring(0, currentString.indexOf(","));
   ls1_wsv2_state = subarray.toInt();
-  if(ls1_wsv2_state == 1){digitalWrite(wsv2_led, HIGH);}else{digitalWrite(wsv2_led, LOW);}
+  if(ls1_wsv2_state == 1){digitalWrite(SOL1_WSV2_LED, HIGH);}else{digitalWrite(SOL1_WSV2_LED, LOW);}
   currentString = currentString.substring(currentString.indexOf(",")+1);
 
   subarray = currentString.substring(0, currentString.indexOf(","));
   ls2_osv4_state = subarray.toInt();
-  if(ls2_osv4_state == 1){digitalWrite(osv4_led, HIGH);}else{digitalWrite(osv4_led, LOW);}
+  if(ls2_osv4_state == 1){digitalWrite(SOL2_OSV4_LED, HIGH);}else{digitalWrite(SOL2_OSV4_LED, LOW);}
   currentString = currentString.substring(currentString.indexOf(",")+1);
 
   subarray = currentString.substring(0, currentString.indexOf(","));
   ls3_osv5_state = subarray.toInt();
-  if(ls3_osv5_state == 1){digitalWrite(osv5_led, HIGH);}else{digitalWrite(osv5_led, LOW);}
+  if(ls3_osv5_state == 1){digitalWrite(SOL3_OSV5_LED, HIGH);}else{digitalWrite(SOL3_OSV5_LED, LOW);}
   currentString = currentString.substring(currentString.indexOf(",")+1);
 
   subarray = currentString.substring(0, currentString.indexOf(","));
   ls4_nsv2_state = subarray.toInt();
-  if(ls4_nsv2_state == 1){digitalWrite(nsv2_led, HIGH);}else{digitalWrite(nsv2_led, LOW);}
+  if(ls4_nsv2_state == 1){digitalWrite(SOL4_NSV2_LED, HIGH);}else{digitalWrite(SOL4_NSV2_LED, LOW);}
   currentString = currentString.substring(currentString.indexOf(",")+1);
 
 //THERMOCOUPLES-------------------------------------------------------------
@@ -437,94 +466,6 @@ void blinker()
 }
 
 
-
-void updateLEDIndicators()
-{
-  if(ls1_wsv2_state == 1){digitalWrite(wsv2_led, HIGH);}else{digitalWrite(wsv2_led, LOW);}
-
-   if(ls2_osv4_state == 1)
-  {
-    digitalWrite(osv4_led, HIGH);
-  }
-  else
-  {
-    digitalWrite(osv4_led, LOW);
-  }
-
-   if(ls3_osv5_state == 1)
-  {
-    digitalWrite(osv5_led, HIGH);
-  }
-  else
-  {
-    digitalWrite(osv5_led, LOW);
-  }
-
-   if(ls4_nsv2_state == 1)
-  {
-    digitalWrite(nsv2_led, HIGH);
-  }
-  else
-  {
-    digitalWrite(nsv2_led, LOW);
-  }
-
-  if(processing_wsv2 == 1)
-  {
-    digitalWrite(sol_wsv2_relay, HIGH);
-  }
-  else
-  {
-    digitalWrite(sol_wsv2_relay, LOW);
-  }
-
-  if(processing_osv4 == 1)
-  {
-    digitalWrite(sol_osv4_relay, HIGH);
-  }
-  else
-  {
-    digitalWrite(sol_osv4_relay, LOW);
-  }
-
-  if(processing_osv5 == 1)
-  {
-    digitalWrite(sol_osv5_relay, HIGH);
-  }
-  else
-  {
-    digitalWrite(sol_osv5_relay, LOW);
-  }
-
-  if(processing_nsv2 == 1)
-  {
-    digitalWrite(sol_nsv2_relay, HIGH);
-  }
-  else
-  {
-    digitalWrite(sol_nsv2_relay, LOW);
-  }
-
-  if(processing_arming == 1)
-  {
-    digitalWrite(arming_led, HIGH);
-    analogWrite(BUZZER, 255);
-  }
-  else
-  {
-    digitalWrite(arming_led, LOW);
-    analogWrite(BUZZER, 0);
-  }
-
-  if(processing_igniter == 1 && processing_arming == 1)
-  {
-    digitalWrite(igniter_led, HIGH);
-  }
-  else
-  {
-    digitalWrite(igniter_led, LOW);
-  }
-}
 
 void serialPrintAllSensors()
 {
